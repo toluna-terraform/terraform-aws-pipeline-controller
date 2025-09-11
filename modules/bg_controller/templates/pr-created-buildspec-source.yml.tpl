@@ -3,10 +3,8 @@ version: 0.2
 
 env:
   parameter-store:
-    BB_USER: "/app/bb_user"  
+    BB_USER: "/app/bb_user"
     BB_PASS: "/app/bb_app_pass"
-    CONSUL_URL: "/infra/consul_url"
-    CONSUL_HTTP_TOKEN: "/infra/${app_name}-${env_type}/consul_http_token"
 
 phases:
   pre_build:
@@ -29,13 +27,13 @@ phases:
           chmod 600 ~/.ssh/id_rsa             # "Adjust the private key permissions (avoids a critical error)"
           eval "$(ssh-agent -s)"              # "Initialize the ssh agent"
           ssh-add ~/.ssh/id_rsa               # "Add the codepipeline user's key to the ssh "keychain""
-          git submodule update --init --recursive   
+          git submodule update --init --recursive
         else
           echo "Project doesn't use git submodules"
         fi
-      - yum install -y yum-utils 
+      - yum install -y yum-utils
       - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-      - yum -y install terraform consul   # "Installing consul binary to interact with Consul backend"
+      - yum -y install terraform
       - aws s3api delete-object --bucket s3-codepipeline-${app_name}-${env_type} --key ${env_name}/source_artifacts.zip
       - aws s3api delete-object --bucket s3-codepipeline-${app_name}-${env_type} --key ${env_name}-green/source_artifacts.zip
       - aws s3api delete-object --bucket s3-codepipeline-${app_name}-${env_type} --key ${env_name}-blue/source_artifacts.zip
@@ -51,9 +49,9 @@ phases:
         if [[ "${pipeline_type}" != "dev" ]]; then
           curl -u $BB_USER:$BB_PASS -L "https://api.bitbucket.org/2.0/repositories/${source_repository}/pullrequests/$PR_NUMBER/diffstat" | jq -r '.values[].old.path, .values[].new.path' > /tmp/diff_results.txt
         fi
-      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${aws_profile}
-      - export CONSUL_HTTP_ADDR=https://$CONSUL_URL
-      - export CURRENT_COLOR=$(consul kv get "infra/${app_name}-${env_name}/current_color")   # "Checking the current color of the environment"
+      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-non-prod
+      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-prod
+      - export CURRENT_COLOR=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" -)   # "Checking the current color of the environment"
       - |
         if [[ $CURRENT_COLOR == "green" ]] || [[ $CURRENT_COLOR == "blue" ]]; then
           export inprogress=($(aws codepipeline list-action-executions --pipeline-name codepipeline-${app_name}-${env_name}-$CURRENT_COLOR --query 'actionExecutionDetails[?status==`InProgress`].status' --output text))
@@ -108,11 +106,14 @@ phases:
           tf_change_status=$(grep -q "terraform/app" /tmp/diff_results.txt >/dev/null;echo $?)
           if [[ "$tf_change_status" -eq 1 ]]; then
             TF_CHANGED="false"
-          else 
+          else
             TF_CHANGED="true"
           fi
-          consul kv get "infra/${app_name}-${env_name}/current_color" || consul kv put "infra/${app_name}-${env_name}/current_color" blue
-          if [[ $(consul kv get "infra/${app_name}-${env_name}/current_color") == "blue" ]]; then
+          if [[ -z $CURRENT_COLOR ]]; then
+            echo -n "blue" | aws s3 cp - "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" --content-type "text/plain"
+            export CURRENT_COLOR=blue
+          fi
+          if [[ "$CURRENT_COLOR" == "blue" ]]; then
             CURRENT_COLOR="blue"
             NEXT_COLOR="green"
           else
@@ -137,9 +138,9 @@ phases:
         fi
       - |
         if [[ "${pipeline_type}" != "dev" ]]; then
-          consul kv put "infra/${app_name}-${env_name}/infra_changed" $TF_CHANGED
+          echo $TF_CHANGED | aws s3 cp - "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/infra_changed" --content-type "text/plain"
         fi
-      
+
   post_build:
     on-failure: ABORT
     commands:
@@ -150,11 +151,11 @@ phases:
         src_changed=$(grep -v -E 'terraform|tests' /tmp/diff_results.txt >/dev/null;echo $?)
         if [[ "$src_changed" -eq 1 ]] && [[ "${pipeline_type}" != "dev" ]]; then
           echo "false" > src_changed.txt
-        else 
+        else
           echo "true" > src_changed.txt
         fi
       - echo $PR_NUMBER > pr.txt
-      - | 
+      - |
         if [[ "${pipeline_type}" == "ci" ]] || [[ "${pipeline_type}" == "dev" ]]; then
           echo "true" > ci.txt
         else
@@ -164,7 +165,7 @@ phases:
       - echo $head > head.txt
       - |
         COMMIT_ID=$${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
-        consul kv put "infra/${app_name}-${env_name}/commit_id" $COMMIT_ID
+        echo -n $COMMIT_ID | aws s3 cp - "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/commit_id" --content-type "text/plain"
         echo $COMMIT_ID > commit_id.txt
         aws ssm put-parameter --name "/infra/${app_name}-${env_name}/commit_id" --type "String" --value $COMMIT_ID --overwrite
         aws ssm put-parameter --name "/infra/${app_name}-${env_name}/pr_id" --type "String" --value $PR_NUMBER --overwrite

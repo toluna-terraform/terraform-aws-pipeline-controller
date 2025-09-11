@@ -113,7 +113,9 @@ resource "aws_codebuild_project" "pr_codebuild" {
       source_repository = var.source_repository,
       is_managed_env = var.is_managed_env,
       pipeline_type = var.pipeline_type,
-      aws_profile = var.aws_profile })
+      aws_profile = var.aws_profile,
+      tribe_state_bucket = var.tribe_state_bucket
+      })
     }
     tags = tomap({
       Name        = "${local.prefix}-${local.codebuild_name}",
@@ -163,6 +165,7 @@ resource "aws_codebuild_project" "merge_codebuild" {
         domain         = var.domain,
         aws_profile    = var.aws_profile
         ttl            = var.ttl
+        tribe_state_bucket = var.tribe_state_bucket
       }) : var.app_type == "sam" ? templatefile("${path.module}/templates/sam-merge-buildspec-source.yml.tpl",
       {
         env_name       = var.env_name,
@@ -172,14 +175,16 @@ resource "aws_codebuild_project" "merge_codebuild" {
         domain         = var.domain,
         aws_profile    = var.aws_profile
         ttl            = var.ttl
+        tribe_state_bucket = var.tribe_state_bucket
       }) : templatefile("${path.module}/templates/spa-merge-buildspec-source.yml.tpl",
       {
         env_name       = var.env_name,
-        env_type       = var.env_type, 
+        env_type       = var.env_type,
         app_name       = var.app_name,
         domain         = var.domain,
         app_type       = var.app_type,
         aws_profile    = var.aws_profile
+        tribe_state_bucket = var.tribe_state_bucket
     })
   }
   tags = tomap({
