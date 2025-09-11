@@ -51,3 +51,7 @@ variable "ttl" {
   type = number
   default = 300
 }
+
+variable "tribe_state_bucket" {
+  type = string
+}

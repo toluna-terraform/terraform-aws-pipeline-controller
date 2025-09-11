@@ -60,7 +60,7 @@ resource "aws_s3_bucket_policy" "codepipeline_bucket" {
           "Service": "cloudtrail.amazonaws.com"
       },
       "Action": "s3:*",
-      "Resource":[ 
+      "Resource":[
         "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.id}/*",
         "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.id}"
       ]
@@ -101,6 +101,7 @@ module "source_blue_green" {
   pipeline_type     = each.value.pipeline_type
   source_repository = var.source_repository
   bucket_id         = aws_s3_bucket.codepipeline_bucket.id
+  tribe_state_bucket  = "toluna-${var.tribe}-tf-state-data"
   depends_on = [
     aws_s3_bucket.codepipeline_bucket
   ]
