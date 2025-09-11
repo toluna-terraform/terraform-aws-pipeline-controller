@@ -34,3 +34,7 @@ variable "ttl" {
   type = number
   default = 300
 }
+
+variable "tribe" {
+  type = string
+}

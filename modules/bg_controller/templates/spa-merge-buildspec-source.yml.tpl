@@ -3,14 +3,15 @@ version: 0.2
 
 env:
   parameter-store:
-    USER: "/app/bb_user"  
+    USER: "/app/bb_user"
     PASS: "/app/bb_app_pass"
 
 phases:
   pre_build:
     commands:
       - yum install -y yum-utils
-      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${aws_profile}
+      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-non-prod
+      - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-prod
   build:
     on-failure: ABORT
     commands:
@@ -27,4 +28,4 @@ phases:
         echo "}"  >> approvalstage-approved.json
         echo "}"  >> approvalstage-approved.json
         aws codepipeline put-approval-result --cli-input-json file://approvalstage-approved.json
-        
+
