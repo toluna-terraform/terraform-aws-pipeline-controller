@@ -138,7 +138,7 @@ phases:
         fi
       - |
         if [[ "${pipeline_type}" != "dev" ]]; then
-          echo $TF_CHANGED | aws s3 cp - "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/infra_changed" --content-type "text/plain"
+          echo -n $TF_CHANGED | aws s3 cp - "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/infra_changed" --content-type "text/plain"
         fi
 
   post_build:
