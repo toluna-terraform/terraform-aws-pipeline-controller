@@ -51,7 +51,7 @@ phases:
         fi
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-non-prod
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-prod
-      - export CURRENT_COLOR=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" -)   # "Checking the current color of the environment"
+      - export CURRENT_COLOR=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" - || echo "")   # "Checking the current color of the environment"
       - |
         if [[ $CURRENT_COLOR == "green" ]] || [[ $CURRENT_COLOR == "blue" ]]; then
           export inprogress=($(aws codepipeline list-action-executions --pipeline-name codepipeline-${app_name}-${env_name}-$CURRENT_COLOR --query 'actionExecutionDetails[?status==`InProgress`].status' --output text))

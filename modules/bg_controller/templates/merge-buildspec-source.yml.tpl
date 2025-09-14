@@ -34,10 +34,10 @@ phases:
     on-failure: ABORT
     commands:
       - |
-        INFRA_CHANGED=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/infra_changed" -)
+        INFRA_CHANGED=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/infra_changed" - || echo "")
         echo "INFRA_CHANGED =" $INFRA_CHANGED
         if [ "$INFRA_CHANGED" == "true" ]; then
-          CURRENT_COLOR=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" -)
+          CURRENT_COLOR=$(aws s3 cp "s3://${tribe_state_bucket}/infra/${app_name}-${env_name}/current_color" - || echo "")
           echo "CURRENT_COLOR = " $CURRENT_COLOR
           if [ "$CURRENT_COLOR" != "green" ] && [ "$CURRENT_COLOR" != "blue" ]; then
             echo "Creating Green route"
