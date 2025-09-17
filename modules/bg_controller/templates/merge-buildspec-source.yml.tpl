@@ -9,7 +9,7 @@ env:
 phases:
   pre_build:
     commands:
-      - yum install -y yum-utils
+      - yum install -y yum-utils terraform
       - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-non-prod
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-prod
