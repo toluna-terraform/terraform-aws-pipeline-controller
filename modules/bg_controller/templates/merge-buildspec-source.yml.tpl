@@ -11,7 +11,6 @@ phases:
     commands:
       - yum install -y yum-utils
       - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-      - export CONSUL_HTTP_ADDR=https://$CONSUL_URL
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-non-prod
       - printf "%s\n%s\nus-east-1\njson" | aws configure --profile ${app_name}-prod
       - |
