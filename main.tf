@@ -31,6 +31,31 @@ resource "aws_s3_bucket_public_access_block" "codepipeline_bucket" {
   ]
 }
 
+resource "aws_s3_bucket_cors_configuration" "inframap_cors_rules" {
+  bucket = aws_s3_bucket.codepipeline_bucket.id
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = []
+    max_age_seconds = 3000
+  }
+}
+
+resource "aws_s3_bucket_object" "infrmap_cli" {
+  bucket = aws_s3_bucket.codepipeline_bucket.id
+  key = "inframap/inframap-linux-amd64.tar.gz"
+  source = "${path.module}/scripts/inframap-linux-amd64.tar.gz"
+  etag = "${filemd5("${path.module}/scripts/inframap-linux-amd64.tar.gz")}"
+}
+
+resource "aws_s3_bucket_object" "infrmap_generator" {
+  bucket = aws_s3_bucket.codepipeline_bucket.id
+  key = "inframap/generator.sh"
+  source = "${path.module}/scripts/generator.sh"
+  etag = "${filemd5("${path.module}/scripts/generator.sh")}"
+}
+
 data "aws_caller_identity" "current" {
 
 }
